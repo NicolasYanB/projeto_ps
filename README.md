@@ -98,7 +98,6 @@ O polimorfismo foi aplicado no sistema para eliminar estruturas condicionais rep
 Ocorre no momento do checkout, especificamente no método de finalizar a compra, dentro do laço de repetição `for` que varre os itens do carrinho.
 
 ![Polimorfismo no carrinho](polimorfismo_carrinho.png) 
-*(Aviso: Tire um print do laço for que mostra a linha "item.produto.processar_entrega()" e salve na pasta assets com o nome polimorfismo_carrinho.png, depois apague este aviso entre parênteses).*
 
 **Como funciona e a Motivação Arquitetural:**
 A verdadeira inteligência e flexibilidade do código se revelam na linha de comando única: `item.produto.processar_entrega()`. 
