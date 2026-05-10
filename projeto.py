@@ -1,7 +1,6 @@
 from datetime import datetime
 from abc import ABC, abstractmethod  
 
-# Produto agora herda de ABC (Abstract Base Class)
 class Produto(ABC):
     def __init__(self, id_produto, nome, preco, estoque, loja_nome):
         self.id_produto = id_produto
@@ -32,9 +31,13 @@ class Produto(ABC):
         else:
             print("Erro: O preço não pode ser negativo!")
 
-    # Contrato Obrigatório
+    # Contratos Obrigatórios
     @abstractmethod
     def processar_entrega(self):
+        pass
+
+    @abstractmethod
+    def clone(self, novo_id_produto):
         pass
 
     def __str__(self):
@@ -52,6 +55,16 @@ class ProdFisico(Produto):
     def processar_entrega(self):
         return f"Saída para transportadora. Frete: R${self.calcular_frete():.2f}"
 
+    def clone(self, novo_id_produto):
+        return ProdFisico(
+            id_produto=novo_id_produto,
+            nome=self.nome,
+            preco=self.get_preco(),
+            estoque=self.get_estoque(),
+            loja_nome=self.loja_nome,
+            peso_kg=self.peso_kg
+        )
+
     def __str__(self):
         return super().__str__() + f" [Peso: {self.peso_kg}kg]"
 
@@ -65,6 +78,15 @@ class ProdDigital(Produto):
 
     def processar_entrega(self):
         return f"Link para download liberado: {self.gerar_link()}"
+
+    def clone(self, novo_id_produto):
+        return ProdDigital(
+            id_produto=novo_id_produto,
+            nome=self.nome,
+            preco=self.get_preco(),
+            estoque=self.get_estoque(),
+            loja_nome=self.loja_nome
+        )
 
     def __str__(self):
         return super().__str__() + " [PRODUTO DIGITAL]"
@@ -228,7 +250,7 @@ if __name__ == "__main__":
         print(f"USUÁRIO LOGADO: {usuario_atual.nome} ({tipo_u})")
         print("1 - Ver Catálogo | 2 - Comprar | 3 - Ver Carrinho")
         print("4 - Simular Mudança de Preço | 5 - Finalizar Compra | 6 - Histórico")
-        print("7 - Publicar Produto (Apenas Vendedores)")
+        print("7 - Publicar Produto | 8 - Clonar Produto (Apenas Vendedores)")
         print("9 - Gerenciar Conta (Trocar/Criar) | 0 - Sair")
         print("="*50)
         
@@ -308,6 +330,29 @@ if __name__ == "__main__":
                     print(f"Produto '{nome_prod}' publicado com sucesso na sua loja '{usuario_atual.loja.nome_loja}'!")
                 except ValueError:
                     print("Erro: Valores inválidos para preço, estoque ou peso.")
+
+        elif opcao == "8":
+            print("\n--- CLONAR PRODUTO ---")
+            if not isinstance(usuario_atual, UsuarioVendedor):
+                print("Erro: Acesso Negado. Você precisa estar logado em uma conta de Vendedor.")
+            else:
+                id_origem = input("Digite o ID do produto que deseja clonar: ")
+                prod_origem = next((p for p in usuario_atual.loja.catalogo if p.id_produto == id_origem), None)
+
+                if prod_origem:
+                    novo_id = input("Qual será o ID do novo produto? ")
+                    novo_nome = input(f"Novo nome (Deixe vazio para manter '{prod_origem.nome}'): ")
+
+                    # Chamada do método Prototype manual!
+                    prod_clonado = prod_origem.clone(novo_id)
+
+                    if novo_nome.strip():
+                        prod_clonado.nome = novo_nome
+
+                    usuario_atual.loja.publicar_produto(prod_clonado)
+                    print(f"Sucesso! O produto '{prod_clonado.nome}' foi clonado manualmente e já está no catálogo.")
+                else:
+                    print("Erro: O produto informado não existe no seu catálogo.")
 
         elif opcao == "9":
             print("\n--- GERENCIAR CONTA ---")
