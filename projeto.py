@@ -1,14 +1,57 @@
 from datetime import datetime
-from abc import ABC, abstractmethod  
+from abc import ABC, abstractmethod
+
+class ProdutoFlyweight:
+    def __init__(self, nome, loja_nome, peso_kg=None):
+        self._nome = nome
+        self._loja_nome = loja_nome
+        self._peso_kg = peso_kg
+
+    @property
+    def nome(self):
+        return self._nome
+
+    @property
+    def loja_nome(self):
+        return self._loja_nome
+        
+    @property
+    def peso_kg(self):
+        return self._peso_kg
+
+
+class FlyweightFactory:
+    _flyweights = {}
+
+    @classmethod
+    def get_flyweight(cls, nome, loja_nome, peso_kg=None):
+        # A chave de cache é a combinação dos atributos intrínsecos
+        chave = (nome, loja_nome, peso_kg)
+        if chave not in cls._flyweights:
+            cls._flyweights[chave] = ProdutoFlyweight(nome, loja_nome, peso_kg)
+        return cls._flyweights[chave]
+
+    @classmethod
+    def contar_flyweights(cls):
+        return len(cls._flyweights)
 
 class Produto(ABC):
-    def __init__(self, id_produto, nome, preco, estoque, loja_nome):
+    def __init__(self, id_produto, preco, estoque, flyweight: ProdutoFlyweight):
         self.id_produto = id_produto
-        self.nome = nome
-        self.loja_nome = loja_nome
-        # Encapsulamento: Atributos privados
+        self.flyweight = flyweight  # Referência ao estado intrínseco
+        
+        # Encapsulamento: Atributos privados (Estado Extrínseco)
         self.__preco = preco
         self.__estoque = estoque
+
+    # Propriedades para acessar o estado compartilhado (Flyweight) de forma transparente
+    @property
+    def nome(self):
+        return self.flyweight.nome
+        
+    @property
+    def loja_nome(self):
+        return self.flyweight.loja_nome
         
     def get_preco(self):
         return self.__preco
@@ -37,17 +80,21 @@ class Produto(ABC):
         pass
 
     @abstractmethod
-    def clone(self, novo_id_produto):
+    def clone(self, novo_id_produto, novo_nome=None):
         pass
 
     def __str__(self):
         status = "Disponível" if self.__estoque > 0 else "Indisponível"
         return f"[{self.id_produto}] {self.nome} - R${self.__preco:.2f} ({status}: {self.__estoque} un.)"
 
+
 class ProdFisico(Produto):
-    def __init__(self, id_produto, nome, preco, estoque, loja_nome, peso_kg):
-        super().__init__(id_produto, nome, preco, estoque, loja_nome) 
-        self.peso_kg = peso_kg 
+    def __init__(self, id_produto, preco, estoque, flyweight: ProdutoFlyweight):
+        super().__init__(id_produto, preco, estoque, flyweight) 
+        
+    @property
+    def peso_kg(self):
+        return self.flyweight.peso_kg
         
     def calcular_frete(self):
         return self.peso_kg * 10.00 
@@ -55,22 +102,26 @@ class ProdFisico(Produto):
     def processar_entrega(self):
         return f"Saída para transportadora. Frete: R${self.calcular_frete():.2f}"
 
-    def clone(self, novo_id_produto):
+    def clone(self, novo_id_produto, novo_nome=None):
+        fw_usado = self.flyweight
+        # Se alterou o nome durante o clone, precisamos de um novo flyweight (ou reaproveitar outro existente)
+        if novo_nome:
+            fw_usado = FlyweightFactory.get_flyweight(novo_nome, self.loja_nome, self.peso_kg)
+            
         return ProdFisico(
             id_produto=novo_id_produto,
-            nome=self.nome,
             preco=self.get_preco(),
             estoque=self.get_estoque(),
-            loja_nome=self.loja_nome,
-            peso_kg=self.peso_kg
+            flyweight=fw_usado
         )
 
     def __str__(self):
         return super().__str__() + f" [Peso: {self.peso_kg}kg]"
 
+
 class ProdDigital(Produto):
-    def __init__(self, id_produto, nome, preco, estoque, loja_nome):
-        super().__init__(id_produto, nome, preco, estoque, loja_nome)
+    def __init__(self, id_produto, preco, estoque, flyweight: ProdutoFlyweight):
+        super().__init__(id_produto, preco, estoque, flyweight)
         
     def gerar_link(self): 
         nome_url = self.nome.lower().replace(" ", "-")
@@ -79,17 +130,21 @@ class ProdDigital(Produto):
     def processar_entrega(self):
         return f"Link para download liberado: {self.gerar_link()}"
 
-    def clone(self, novo_id_produto):
+    def clone(self, novo_id_produto, novo_nome=None):
+        fw_usado = self.flyweight
+        if novo_nome:
+            fw_usado = FlyweightFactory.get_flyweight(novo_nome, self.loja_nome)
+
         return ProdDigital(
             id_produto=novo_id_produto,
-            nome=self.nome,
             preco=self.get_preco(),
             estoque=self.get_estoque(),
-            loja_nome=self.loja_nome
+            flyweight=fw_usado
         )
 
     def __str__(self):
         return super().__str__() + " [PRODUTO DIGITAL]"
+
 
 class ItemCarrinho:
     def __init__(self, produto: Produto, quantidade: int):
@@ -99,6 +154,7 @@ class ItemCarrinho:
         
     def get_subtotal(self):
         return self.preco_adicionado * self.quantidade
+
 
 class Carrinho:
     def __init__(self):
@@ -124,6 +180,7 @@ class Carrinho:
     def limpar(self):
         self.itens.clear()
 
+
 class Pedido:
     def __init__(self, id_pedido, itens, total):
         self.id_pedido = id_pedido
@@ -134,6 +191,7 @@ class Pedido:
 
     def __str__(self):
         return f"Pedido #{self.id_pedido} ({self.data.strftime('%d/%m/%Y %H:%M')}) - Total Final: R${self.total:.2f}"
+
 
 class Usuario:
     def __init__(self, id_usuario, nome, email):
@@ -150,6 +208,7 @@ class Usuario:
     def is_logado(self):
         return self.__logado
 
+
 class UsuarioVIP(Usuario):
     def __init__(self, id_usuario, nome, email):
         super().__init__(id_usuario, nome, email)
@@ -158,10 +217,6 @@ class UsuarioVIP(Usuario):
     def aplicar_desconto(self, valor_total):
         return valor_total * (1 - self.taxa_desconto)
 
-class UsuarioVendedor(Usuario):
-    def __init__(self, id_usuario, nome, email, nome_loja):
-        super().__init__(id_usuario, nome, email)
-        self.loja = Loja(nome_loja, self.nome)
 
 class Loja:
     def __init__(self, nome_loja, vendedor_nome):
@@ -172,6 +227,13 @@ class Loja:
     def publicar_produto(self, produto):
         self.catalogo.append(produto)
         return produto
+
+
+class UsuarioVendedor(Usuario):
+    def __init__(self, id_usuario, nome, email, nome_loja):
+        super().__init__(id_usuario, nome, email)
+        self.loja = Loja(nome_loja, self.nome)
+
 
 class Marketplace:
     def __init__(self, nome):
@@ -225,15 +287,20 @@ class Marketplace:
         
         return f"Sucesso! {novo_pedido}{resumo_vip}{detalhes_entrega}"
 
+
 if __name__ == "__main__":
     app = Marketplace("NEW Shopee")
     
     # Criando o Vendedor Inicial do Sistema
     vendedor_oficial = app.registrar_usuario("V01", "Vendedor Ricardo", "vendedor@email.com", tipo="vendedor", nome_loja="NEW Shopee")
     
-    # Produtos Iniciais
-    p1 = ProdFisico("1", "Fone Bluetooth", 100.00, 5, "NEW Shopee", 0.5)
-    p2 = ProdDigital("101", "Ebook Python", 45.00, 1000, "NEW Shopee")
+    # Criação dos Flyweights Iniciais
+    fw1 = FlyweightFactory.get_flyweight("Fone Bluetooth", "NEW Shopee", peso_kg=0.5)
+    fw2 = FlyweightFactory.get_flyweight("Ebook Python", "NEW Shopee")
+    
+    # Produtos Iniciais utilizando a fábrica de Flyweight
+    p1 = ProdFisico("1", 100.00, 5, fw1)
+    p2 = ProdDigital("101", 45.00, 1000, fw2)
     vendedor_oficial.loja.publicar_produto(p1)
     vendedor_oficial.loja.publicar_produto(p2)
 
@@ -322,9 +389,13 @@ if __name__ == "__main__":
                     
                     if tipo_prod == "1":
                         peso = float(input("Peso em KG (Ex: 1.5): "))
-                        novo_prod = ProdFisico(id_prod, nome_prod, preco_prod, estq_prod, usuario_atual.loja.nome_loja, peso)
+                        # Reutiliza ou cria o estado intrínseco
+                        fw = FlyweightFactory.get_flyweight(nome_prod, usuario_atual.loja.nome_loja, peso)
+                        novo_prod = ProdFisico(id_prod, preco_prod, estq_prod, fw)
                     else:
-                        novo_prod = ProdDigital(id_prod, nome_prod, preco_prod, estq_prod, usuario_atual.loja.nome_loja)
+                        # Reutiliza ou cria o estado intrínseco
+                        fw = FlyweightFactory.get_flyweight(nome_prod, usuario_atual.loja.nome_loja)
+                        novo_prod = ProdDigital(id_prod, preco_prod, estq_prod, fw)
                         
                     usuario_atual.loja.publicar_produto(novo_prod)
                     print(f"Produto '{nome_prod}' publicado com sucesso na sua loja '{usuario_atual.loja.nome_loja}'!")
@@ -341,16 +412,14 @@ if __name__ == "__main__":
 
                 if prod_origem:
                     novo_id = input("Qual será o ID do novo produto? ")
-                    novo_nome = input(f"Novo nome (Deixe vazio para manter '{prod_origem.nome}'): ")
+                    novo_nome = input(f"Novo nome (Deixe vazio para manter o mesmo): ")
+                    novo_nome = novo_nome.strip() if novo_nome.strip() else None
 
-                    # Chamada do método Prototype manual!
-                    prod_clonado = prod_origem.clone(novo_id)
-
-                    if novo_nome.strip():
-                        prod_clonado.nome = novo_nome
+                    # Chamada do método Prototype que agora respeita o Flyweight!
+                    prod_clonado = prod_origem.clone(novo_id, novo_nome)
 
                     usuario_atual.loja.publicar_produto(prod_clonado)
-                    print(f"Sucesso! O produto '{prod_clonado.nome}' foi clonado manualmente e já está no catálogo.")
+                    print(f"Sucesso! O produto '{prod_clonado.nome}' foi clonado e já está no catálogo.")
                 else:
                     print("Erro: O produto informado não existe no seu catálogo.")
 
