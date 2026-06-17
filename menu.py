@@ -134,45 +134,59 @@ class ClonarProdutoCommand(Command):
         else:
             print("Erro: O produto informado não existe no seu catálogo.")
 
-class GerenciarContaCommand(Command):
+class LoginCommand(Command):
     def executar(self):
-        print("\n--- GERENCIAR CONTA ---")
-        print("[1] Fazer Login (Trocar de Usuário)")
-        print("[2] Criar Nova Conta")
-        acao_conta = input("Escolha a opção (1 ou 2): ")
-
-        if acao_conta == "1":
-            print("\n--- USUÁRIOS CADASTRADOS ---")
-            for u in self.sessao.app.usuarios.values():
-                t_str = "VIP" if isinstance(u, UsuarioVIP) else ("Vendedor" if isinstance(u, UsuarioVendedor) else "Normal")
-                print(f"ID: {u.id_usuario} | Nome: {u.nome} | Tipo: {t_str}")
+        print("\n--- FAZER LOGIN ---")
+        print("Usuários Cadastrados:")
+        for u in self.sessao.app.usuarios.values():
+            t_str = "VIP" if isinstance(u, UsuarioVIP) else ("Vendedor" if isinstance(u, UsuarioVendedor) else "Normal")
+            print(f"ID: {u.id_usuario} | Nome: {u.nome} | Tipo: {t_str}")
+        
+        id_escolhido = input("\nDigite o ID do usuário para fazer login (Ex: U01, V01): ")
+        
+        if id_escolhido in self.sessao.app.usuarios:
+            usuario = self.sessao.app.usuarios[id_escolhido]
+            senha_digitada = input("Digite sua senha: ")
             
-            id_escolhido = input("\nDigite o ID do usuário para fazer login (Ex: U01, V01): ")
-            if id_escolhido in self.sessao.app.usuarios:
-                self.sessao.usuario_atual = self.sessao.app.usuarios[id_escolhido]
+            # Validação da nova propriedade 'senha'
+            if usuario.senha == senha_digitada:
+                self.sessao.usuario_atual = usuario
                 self.sessao.usuario_atual.login()
                 print(f"Login realizado com sucesso! Bem-vindo de volta, {self.sessao.usuario_atual.nome}.")
             else:
-                print("Erro: Usuário não encontrado no sistema.")
-
-        elif acao_conta == "2":
-            print("\n--- CADASTRO DE NOVO USUÁRIO ---")
-            print("Tipos de Conta:\n[1] Comprador Normal\n[2] Comprador VIP (10% Desconto)\n[3] Vendedor (Pode publicar produtos)")
-            tipo_escolha = input("Escolha o tipo (1/2/3): ")
-            
-            nome_u = input("Nome do novo usuário: ")
-            novo_id = "U" + str(len(self.sessao.app.usuarios) + 1)
-            
-            if tipo_escolha == "2":
-                self.sessao.usuario_atual = self.sessao.app.registrar_usuario(novo_id, nome_u, f"{nome_u.lower()}@email.com", tipo="vip")
-            elif tipo_escolha == "3":
-                novo_id = "V" + str(len(self.sessao.app.usuarios) + 1)
-                nome_loja = input("Nome da sua Loja: ")
-                self.sessao.usuario_atual = self.sessao.app.registrar_usuario(novo_id, nome_u, f"{nome_u.lower()}@email.com", tipo="vendedor", nome_loja=nome_loja)
-            else:
-                self.sessao.usuario_atual = self.sessao.app.registrar_usuario(novo_id, nome_u, f"{nome_u.lower()}@email.com", tipo="normal")
-                
-            self.sessao.usuario_atual.login()
-            print(f"Conta criada! Você está logado automaticamente como: {self.sessao.usuario_atual.nome}")
+                print("Erro: Senha incorreta.")
         else:
+            print("Erro: Usuário não encontrado no sistema.")
+
+
+class CadastroCommand(Command):
+    def executar(self):
+        print("\n--- CADASTRO DE NOVO USUÁRIO ---")
+        print("Tipos de Conta:\n[1] Comprador Normal\n[2] Comprador VIP (10% Desconto)\n[3] Vendedor (Pode publicar produtos)")
+        tipo_escolha = input("Escolha o tipo (1/2/3): ")
+        
+        if tipo_escolha not in ["1", "2", "3"]:
             print("Opção inválida.")
+            return
+            
+        nome_u = input("Nome do novo usuário: ")
+        senha_u = input("Defina uma senha para sua conta: ")
+        
+        # O ID é gerado automaticamente baseado no tipo escolhido
+        if tipo_escolha == "3":
+            novo_id = "V" + str(len(self.sessao.app.usuarios) + 1)
+            nome_loja = input("Nome da sua Loja: ")
+            # Passando a senha para o método de registro
+            self.sessao.usuario_atual = self.sessao.app.registrar_usuario(
+                novo_id, nome_u, f"{nome_u.lower()}@email.com", tipo="vendedor", nome_loja=nome_loja, senha=senha_u
+            )
+        else:
+            novo_id = "U" + str(len(self.sessao.app.usuarios) + 1)
+            tipo_str = "vip" if tipo_escolha == "2" else "normal"
+            # Passando a senha para o método de registro
+            self.sessao.usuario_atual = self.sessao.app.registrar_usuario(
+                novo_id, nome_u, f"{nome_u.lower()}@email.com", tipo=tipo_str, senha=senha_u
+            )
+            
+        self.sessao.usuario_atual.login()
+        print(f"Conta criada com sucesso! Você foi logado automaticamente como: {self.sessao.usuario_atual.nome}")

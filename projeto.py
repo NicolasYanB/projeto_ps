@@ -194,10 +194,11 @@ class Pedido:
 
 
 class Usuario:
-    def __init__(self, id_usuario, nome, email):
+    def __init__(self, id_usuario, nome, email, senha):
         self.id_usuario = id_usuario
         self.nome = nome
         self.email = email
+        self.senha = senha
         self.__logado = False
         self.carrinho = Carrinho()
         self.historico_pedidos = []
@@ -210,8 +211,8 @@ class Usuario:
 
 
 class UsuarioVIP(Usuario):
-    def __init__(self, id_usuario, nome, email):
-        super().__init__(id_usuario, nome, email)
+    def __init__(self, id_usuario, nome, email, senha):
+        super().__init__(id_usuario, nome, email, senha)
         self.taxa_desconto = 0.10 
 
     def aplicar_desconto(self, valor_total):
@@ -230,8 +231,8 @@ class Loja:
 
 
 class UsuarioVendedor(Usuario):
-    def __init__(self, id_usuario, nome, email, nome_loja):
-        super().__init__(id_usuario, nome, email)
+    def __init__(self, id_usuario, nome, email, senha, nome_loja):
+        super().__init__(id_usuario, nome, email, senha)
         self.loja = Loja(nome_loja, self.nome)
 
 
@@ -242,14 +243,14 @@ class Marketplace:
         self.lojas = {}
         self.__contador_pedidos = 1000
         
-    def registrar_usuario(self, id_user, nome, email, tipo="normal", nome_loja=""):
+    def registrar_usuario(self, id_user, nome, email, senha, tipo="normal", nome_loja=""):
         if tipo == "vip":
-            user = UsuarioVIP(id_user, nome, email)
+            user = UsuarioVIP(id_user, nome, email, senha)
         elif tipo == "vendedor":
-            user = UsuarioVendedor(id_user, nome, email, nome_loja)
+            user = UsuarioVendedor(id_user, nome, email, senha, nome_loja)
             self.lojas[nome_loja] = user.loja
         else:
-            user = Usuario(id_user, nome, email)
+            user = Usuario(id_user, nome, email, senha)
             
         self.usuarios[id_user] = user
         return user
