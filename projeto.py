@@ -52,6 +52,9 @@ class Produto(ABC):
     @property
     def loja_nome(self):
         return self.flyweight.loja_nome
+    
+    def set_preco(self, novo_preco):
+        self.__preco = novo_preco
         
     def get_preco(self):
         return self.__preco

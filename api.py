@@ -1,11 +1,12 @@
 from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from commands import *
 
 app_marketplace = Marketplace("NEW Shopee API")
 
 # Dados Iniciais (Mock)
 vendedor_oficial = app_marketplace.registrar_usuario(
-    "V01", "Vendedor Ricardo", "vendedor@email.com", "vendedor", "NEW Shopee", "senha123"
+    "V01", "Vendedor Ricardo", "vendedor@email.com", "senha123", "vendedor", "NEW Shopee"
 )
 fw1 = FlyweightFactory.get_flyweight("Fone Bluetooth", "NEW Shopee", peso_kg=0.5)
 fw2 = FlyweightFactory.get_flyweight("Ebook Python", "NEW Shopee")
@@ -25,6 +26,13 @@ def get_sessao(x_user_id: str = Header(...)):
     return SessaoAPI(app_marketplace, usuario)
 
 api_app = FastAPI(title="NEW Shopee API", description="API usando Design Pattern Command")
+api_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins (great for local development)
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods (GET, POST, PUT, DELETE, etc.)
+    allow_headers=["*"],  # Allows all headers (Crucial for your "X-User-Id" header!)
+)
 
 @api_app.post("/auth/cadastro")
 def cadastrar(dados: CadastroSchema):
@@ -32,10 +40,10 @@ def cadastrar(dados: CadastroSchema):
     novo_id = ("V" if dados.tipo == "3" else "U") + str(len(app_marketplace.usuarios) + 1)
     
     if dados.tipo == "3":
-        user = app_marketplace.registrar_usuario(novo_id, dados.nome, f"{dados.nome}@email.com", "vendedor", dados.nome_loja, dados.senha)
+        user = app_marketplace.registrar_usuario(novo_id, dados.nome, f"{dados.nome}@email.com", dados.senha, "vendedor", dados.nome_loja)
     else:
         tipo_str = "vip" if dados.tipo == "2" else "normal"
-        user = app_marketplace.registrar_usuario(novo_id, dados.nome, f"{dados.nome}@email.com", tipo_str, senha=dados.senha)
+        user = app_marketplace.registrar_usuario(novo_id, dados.nome, f"{dados.nome}@email.com", senha=dados.senha, tipo=tipo_str)
         
     user.login()
     return {"mensagem": "Cadastro realizado com sucesso", "x_user_id": user.id_usuario}
@@ -45,7 +53,15 @@ def login(dados: LoginSchema):
     usuario = app_marketplace.usuarios.get(dados.id_usuario)
     if usuario and usuario.senha == dados.senha:
         usuario.login()
-        return {"mensagem": f"Bem vindo, {usuario.nome}", "x_user_id": usuario.id_usuario}
+        tipo = 0
+        class_name = type(usuario).__name__
+        if (class_name == 'Usuario'):
+            tipo = 1
+        if (class_name == 'UsuarioVIP'):
+            tipo = 2
+        if (class_name == 'UsuarioVendedor'):
+            tipo = 3
+        return {"mensagem": f"Bem vindo, {usuario.nome}", "x_user_id": usuario.id_usuario, 'type': str(tipo)}
     raise HTTPException(status_code=401, detail="Credenciais inválidas")
 
 @api_app.get("/catalogo")
