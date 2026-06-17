@@ -109,3 +109,39 @@ Quando o comando é enviado, o interpretador do Python identifica qual é a **su
 * Se for um `ProdDigital`, ele invoca a regra de geração do link de download.
 
 **Conclusão:** O código do carrinho de compras se torna "cego" para os tipos de produtos, confiando totalmente na autonomia das subclasses. Isso torna o sistema escalável: se amanhã a loja decidir vender serviços (`ProdServico`), basta criar a classe. O código principal de vendas continuará o mesmo, sem precisar de manutenção.
+
+# Design pattern
+
+## Prototype pattern
+O Prototype é um padrão de projeto criacional que permite copiar objetos existentes sem acoplar o seu código às classes desses objetos.
+
+Em nosso projeto isso se faz implementando um metodo clone nas classes de produto, assim ao criar um novo produto o usuário vendedor tem a opção de reutilizar objetos previamente criados ao invés de recriar cada objeto.
+
+<img width="2200" height="1490" alt="carbon(3)" src="https://github.com/user-attachments/assets/4b4248bd-e685-4339-99d6-01f1a18fa080" />
+
+
+<img width="2200" height="1154" alt="carbon(4)" src="https://github.com/user-attachments/assets/cc313080-6694-45c5-bb20-2d5e7d4f798b" />
+
+
+## Flyweight pattern
+O Flyweight é um padrão de projeto estrutural cujo principal objetivo é economizar memória RAM. Ele faz isso permitindo que você compartilhe partes comuns do estado de um objeto entre múltiplos objetos, em vez de manter todos os dados repetidos em cada instância individual.
+
+Em nosso projeto usamos uma classe factory para criar um objeto feito para armazenar atributos imutaveis de cada produto, assim quando um produto é criado, se o conjunto de propriedades já existir ele as reutiliza.
+
+<img width="2200" height="1600" alt="carbon(5)" src="https://github.com/user-attachments/assets/b34d98d5-d924-41a5-96b6-9589afa3fb95" />
+
+
+<img width="2200" height="596" alt="carbon(7)" src="https://github.com/user-attachments/assets/e86fa07e-1776-4495-aa15-01690e42f915" />
+
+
+<img width="2560" height="1378" alt="carbon(8)" src="https://github.com/user-attachments/assets/2de8d114-35f4-4f02-9e82-959e76aff069" />
+
+
+## Command pattern
+O Command é um padrão de projeto comportamental que transforma uma solicitação em um objeto independente. Esse objeto contém toda a informação necessária para executar a ação, permitindo que você parametrize clientes com diferentes requisições, coloque pedidos em uma fila, ou até mesmo suporte operações reversíveis.
+
+Em nosso projeto transformamos todas as opções do menu em commands, oque centraliza a execução de cada opção do usuário em um único local, facilitando a implementação de outros comandos.
+
+<img width="2560" height="1378" alt="carbon(9)" src="https://github.com/user-attachments/assets/b06eabbc-03ea-4ed7-99b2-8ddd7499c531" />
+
+<img width="2560" height="744" alt="carbon(10)" src="https://github.com/user-attachments/assets/28403456-58b7-41ee-b3aa-9613e74563ef" />
